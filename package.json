@@ -1,0 +1,17 @@
+{
+  "name": "aide",
+  "version": "0.2.0",
+  "description": "Tauri math canvas tutor for iPad and desktop",
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "tauri": "tauri",
+    "ios:init": "tauri ios init",
+    "ios:dev": "tauri ios dev",
+    "ios:build": "tauri ios build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.5.0"
+  }
+}

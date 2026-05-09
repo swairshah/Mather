@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>aide · math canvas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      (function () {
+        var t = localStorage.getItem("theme");
+        if (t === "light") {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      })();
+      window.MathJax = {
+        tex: { inlineMath: [["\\(", "\\)"], ["$", "$"]] },
+        svg: { fontCache: "global" },
+        startup: { typeset: false }
+      };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+      html, body, h1, h2, h3, h4, p, ul, ol, li, nav, figure { margin: 0; padding: 0; }
+      *, *::before, *::after { box-sizing: border-box; }
+
+      :root {
+        color-scheme: dark;
+        --bg: rgb(15, 17, 21);
+        --bg-secondary: rgb(26, 29, 35);
+        --bg-tertiary: rgb(31, 36, 46);
+        --border: rgba(107, 114, 128, 0.2);
+        --border-strong: rgba(107, 114, 128, 0.32);
+        --text: rgb(201, 204, 209);
+        --text-bright: rgb(229, 231, 235);
+        --text-muted: rgb(107, 114, 128);
+        --text-dimmed: rgb(75, 85, 99);
+        --accent: rgb(245, 158, 11);
+        --accent-soft: rgba(245, 158, 11, 0.14);
+        --green: rgb(16, 185, 129);
+        --blue: rgb(96, 165, 250);
+        --red: rgb(239, 68, 68);
+        --ink: #f8fafc;
+        --canvas-bg: rgb(17, 21, 28);
+        --grid: rgba(148, 163, 184, 0.075);
+        --font-mono:
+          "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+      [data-theme="light"] {
+        color-scheme: light;
+        --bg: #ffffff;
+        --bg-secondary: #f9fafb;
+        --bg-tertiary: #f3f4f6;
+        --border: #e5e7eb;
+        --border-strong: #d1d5db;
+        --text: #374151;
+        --text-bright: #111827;
+        --text-muted: #6b7280;
+        --text-dimmed: #9ca3af;
+        --accent: #d97706;
+        --accent-soft: rgba(217, 119, 6, 0.12);
+        --green: #059669;
+        --blue: #2563eb;
+        --red: #dc2626;
+        --ink: #0f172a;
+        --canvas-bg: #fffdf7;
+        --grid: rgba(15, 23, 42, 0.06);
+      }
+
+      html {
+        font-size: 14px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      html, body { height: 100%; }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-mono);
+        font-size: 13px;
+        line-height: 1.55;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        user-select: none;
+        transition: background 0.2s, color 0.2s;
+      }
+
+      button, input, select { font: inherit; }
+      button {
+        appearance: none;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-bright);
+        background: transparent;
+        border: 1px solid var(--border);
+        padding: 2px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: color 0.15s, border-color 0.15s, background 0.15s;
+      }
+      button:hover:not(:disabled),
+      button.is-active {
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+      button.is-active {
+        background: var(--accent-soft);
+      }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+      input, select {
+        font-family: var(--font-mono);
+        color: var(--text);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 3px 8px;
+        font-size: 12px;
+      }
+      input:focus, select:focus {
+        outline: 1px solid var(--accent);
+        outline-offset: 1px;
+        border-color: var(--accent);
+      }
+
+      /* Nav */
+      nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: calc(5px + env(safe-area-inset-top)) 14px 5px;
+        flex-shrink: 0;
+      }
+      .nav-left { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+      .nav-brand {
+        color: var(--text-bright);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 13px;
+        letter-spacing: 0.02em;
+      }
+      .nav-brand:hover { color: var(--accent); }
+      .nav-sub {
+        color: var(--text-muted);
+        font-size: 11px;
+        white-space: nowrap;
+      }
+      .nav-right {
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      /* Status pill */
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--text-muted);
+        transition: color 0.2s;
+      }
+      .status-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--text-dimmed);
+        flex-shrink: 0;
+        transition: background 0.2s;
+      }
+      .status.is-connecting { color: var(--accent); }
+      .status.is-connecting .status-dot {
+        background: var(--accent);
+        animation: blink 1.2s ease-in-out infinite;
+      }
+      .status.is-connected { color: var(--green); }
+      .status.is-connected .status-dot { background: var(--green); }
+      @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.35; }
+      }
+
+      /* Go-live button */
+      .btn-go-live {
+        color: white;
+        background: var(--red);
+        border-color: var(--red);
+        border-radius: 6px;
+        font-weight: 700;
+        padding: 3px 12px;
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        box-shadow:
+          0 0 0 1px rgba(239, 68, 68, 0.25),
+          0 0 22px rgba(239, 68, 68, 0.28);
+      }
+      .btn-go-live:hover:not(:disabled) {
+        color: white;
+        background: rgb(248, 113, 113);
+        border-color: rgb(248, 113, 113);
+        box-shadow:
+          0 0 0 1px rgba(248, 113, 113, 0.35),
+          0 0 28px rgba(239, 68, 68, 0.4);
+      }
+      .btn-go-live.is-live {
+        color: var(--text-bright);
+        background: transparent;
+        border-color: rgba(239, 68, 68, 0.65);
+        box-shadow: none;
+      }
+      .btn-go-live.is-live:hover:not(:disabled) {
+        color: var(--text-bright);
+        background: var(--red);
+        border-color: var(--red);
+      }
+
+      /* Theme toggle */
+      .theme-toggle {
+        background: none;
+        border: none;
+        color: var(--text-dimmed);
+        font-size: 14px;
+        padding: 0 2px;
+        cursor: pointer;
+        transition: color 0.15s;
+      }
+      .theme-toggle:hover { color: var(--text-muted); border-color: transparent; }
+
+      /* Toolbar */
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 4px 14px;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .tool-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .tool-divider {
+        width: 1px;
+        height: 16px;
+        background: var(--border);
+        margin: 0 2px;
+      }
+      .swatch {
+        width: 18px;
+        height: 18px;
+        padding: 0;
+        border-radius: 50%;
+        border: 1px solid var(--border-strong);
+      }
+      .swatch.is-active {
+        outline: 1px solid var(--accent);
+        outline-offset: 2px;
+        border-color: transparent;
+      }
+      .range-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-muted);
+        font-size: 11px;
+      }
+      .range-label input[type="range"] {
+        width: 70px;
+        padding: 0;
+        background: transparent;
+        border: none;
+      }
+
+      /* Main */
+      .main {
+        flex: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+        min-height: 0;
+      }
+      .canvas-wrap {
+        min-width: 0;
+        min-height: 0;
+        padding: 14px;
+        background: var(--bg);
+        display: flex;
+      }
+      #stage {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background-color: var(--canvas-bg);
+        background-image:
+          linear-gradient(var(--grid) 1px, transparent 1px),
+          linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+        background-size: 28px 28px;
+        touch-action: none;
+      }
+      #inkLayer, #agentLayer {
+        position: absolute; inset: 0; width: 100%; height: 100%;
+      }
+      #inkLayer { pointer-events: none; }
+      #agentLayer { pointer-events: none; }
+
+      .math-mark, .text-mark {
+        position: absolute;
+        transform-origin: top left;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 3px 7px;
+        pointer-events: none;
+        max-width: 520px;
+        font-family: var(--font-mono);
+      }
+      [data-theme="light"] .math-mark,
+      [data-theme="light"] .text-mark {
+        background: rgba(255, 255, 255, 0.85);
+      }
+      .math-mark mjx-container { margin: 0 !important; }
+
+      /* Side panel — aide-style tabs */
+      .side {
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid var(--border);
+        background: var(--bg);
+      }
+      .tab-bar {
+        display: flex;
+        gap: 18px;
+        padding: 0 16px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .tab {
+        color: var(--text-muted);
+        font-size: 12px;
+        padding: 9px 0;
+        cursor: pointer;
+        user-select: none;
+        border-bottom: 1px solid transparent;
+        margin-bottom: -1px;
+        transition: color 0.15s;
+        background: none;
+        border-radius: 0;
+        border-top: 0;
+        border-left: 0;
+        border-right: 0;
+      }
+      .tab:hover { color: var(--text-bright); border-color: transparent; border-bottom-color: transparent; }
+      .tab.active {
+        color: var(--text-bright);
+        border-bottom-color: var(--accent);
+      }
+      .tab-badge {
+        display: inline-block;
+        margin-left: 5px;
+        font-size: 11px;
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+      }
+      .tab-panel {
+        flex: 1;
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+      }
+      .tab-panel.active { display: flex; }
+      .panel-content {
+        flex: 1;
+        padding: 12px 16px;
+        overflow-y: auto;
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      /* Setup panel sections */
+      .section { margin-bottom: 18px; }
+      .section:last-child { margin-bottom: 0; }
+      .section-label {
+        color: var(--accent);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 5px;
+      }
+      .section-title {
+        color: var(--text-bright);
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .section-help {
+        color: var(--text-muted);
+        font-size: 11px;
+        line-height: 1.5;
+        margin-bottom: 8px;
+      }
+      .section-help code {
+        color: var(--text-bright);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 0 4px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 6px;
+      }
+      .row input { width: 100%; }
+      .stat-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 16px;
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .stat-grid div b {
+        display: block;
+        color: var(--text-bright);
+        font-weight: 600;
+        font-size: 14px;
+        font-variant-numeric: tabular-nums;
+        margin-top: 2px;
+      }
+
+      /* Events — Claude Code style */
+      .events-empty {
+        color: var(--text-muted);
+        font-style: italic;
+      }
+      .event { margin-bottom: 14px; }
+      .event:last-child { margin-bottom: 0; }
+      .event-head {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        font-size: 11px;
+      }
+      .event-icon {
+        flex-shrink: 0;
+        color: var(--text-muted);
+        line-height: 1;
+        width: 14px;
+        display: inline-flex;
+        justify-content: center;
+      }
+      .event-role {
+        font-weight: 500;
+        color: var(--text-bright);
+      }
+      .event-kind {
+        color: var(--text-dimmed);
+        font-size: 11px;
+      }
+      .event-time {
+        margin-left: auto;
+        color: var(--text-dimmed);
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+      }
+      .event-body {
+        margin-top: 4px;
+        margin-left: 22px;
+        color: var(--text);
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 12px;
+      }
+      .event-code {
+        margin: 4px 0 0 22px;
+        padding: 7px 9px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        line-height: 1.5;
+        color: var(--text);
+        overflow-x: auto;
+        white-space: pre;
+        max-height: 220px;
+        overflow-y: auto;
+      }
+      .event-user .event-icon, .event-user .event-role { color: var(--text-bright); }
+      .event-assistant .event-icon, .event-assistant .event-role { color: var(--text-bright); }
+      .event-tool-call .event-icon, .event-tool-call .event-role { color: var(--accent); }
+      .event-tool-result .event-icon { color: var(--green); }
+      .event-tool-result .event-role { color: var(--text-muted); }
+      .event-tool-result .event-body { color: var(--text-muted); }
+      .event-context .event-icon, .event-context .event-role { color: var(--text-muted); }
+      .event-system .event-icon, .event-system .event-role { color: var(--text-dimmed); }
+      .event-system .event-body { color: var(--text-muted); }
+      .event-debug .event-icon, .event-debug .event-role { color: var(--text-dimmed); }
+      .event-debug .event-body { color: var(--text-dimmed); font-size: 11px; }
+      .event-error .event-icon,
+      .event-error .event-role,
+      .event-error .event-body { color: var(--red); }
+
+      /* Toast */
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: calc(16px + env(safe-area-inset-bottom));
+        transform: translateX(-50%) translateY(20px);
+        opacity: 0;
+        pointer-events: none;
+        background: var(--bg-secondary);
+        color: var(--text-bright);
+        padding: 6px 12px;
+        border: 1px solid var(--border-strong);
+        border-radius: 4px;
+        font-size: 11px;
+        font-family: var(--font-mono);
+        transition: 0.18s ease;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      audio { display: none; }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+      /* Responsive */
+      @media (max-width: 980px) {
+        .main {
+          grid-template-columns: 1fr;
+          grid-template-rows: minmax(0, 1fr) 280px;
+        }
+        .side {
+          border-left: 0;
+          border-top: 1px solid var(--border);
+        }
+      }
+      @media (max-width: 720px) {
+        nav, .toolbar { flex-wrap: wrap; }
+        .nav-sub { display: none; }
+        .toolbar { gap: 6px; padding: 4px 10px; }
+        .canvas-wrap { padding: 8px; }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="nav-left">
+        <a class="nav-brand" href="#" id="brandLink">aide</a>
+        <span class="nav-sub">math canvas · tauri / ipad</span>
+      </div>
+      <div class="nav-right">
+        <span class="status" id="statusPill" role="status" aria-live="polite">
+          <span class="status-dot"></span>
+          <span id="statusText">idle</span>
+        </span>
+        <button id="btnStart" class="btn-go-live" type="button">
+          <span id="btnStartLabel">go live</span>
+        </button>
+        <button id="btnTheme" class="theme-toggle" type="button" aria-label="Toggle theme">☀</button>
+      </div>
+    </nav>
+
+    <div class="toolbar">
+      <div class="tool-group" aria-label="Canvas tools">
+        <button class="tool is-active" data-tool="pen">pen</button>
+        <button class="tool" data-tool="eraser">erase</button>
+        <button class="tool" data-tool="pan">tap</button>
+        <span class="tool-divider"></span>
+        <button id="btnUndo">undo</button>
+        <button id="btnClear">clear</button>
+        <button id="btnReadCanvas">read</button>
+      </div>
+      <div class="tool-group" aria-label="Ink settings">
+        <button class="swatch is-active" data-color="#f8fafc" style="background:#f8fafc" title="white"></button>
+        <button class="swatch" data-color="#0f172a" style="background:#0f172a" title="black"></button>
+        <button class="swatch" data-color="#60a5fa" style="background:#60a5fa" title="blue"></button>
+        <button class="swatch" data-color="#f59e0b" style="background:#f59e0b" title="amber"></button>
+        <button class="swatch" data-color="#ef4444" style="background:#ef4444" title="red"></button>
+        <span class="tool-divider"></span>
+        <label class="range-label">size <input id="strokeSize" type="range" min="2" max="18" value="4" /></label>
+      </div>
+    </div>
+
+    <main class="main">
+      <section class="canvas-wrap">
+        <div id="stage" aria-label="Shared math canvas">
+          <svg id="inkLayer" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div id="agentLayer"></div>
+        </div>
+      </section>
+      <aside class="side">
+        <div class="tab-bar" role="tablist">
+          <button class="tab active" data-tab="setup" type="button">setup</button>
+          <button class="tab" data-tab="events" type="button">
+            events<span class="tab-badge" id="eventsBadge" style="display:none">0</span>
+          </button>
+        </div>
+        <div class="tab-panel active" data-panel="setup">
+          <div class="panel-content">
+            <div class="section">
+              <div class="section-label">voice agent</div>
+              <p class="section-help">
+                Enter a key for iPad/mobile builds, or launch desktop with
+                <code>OPENAI_API_KEY</code>. Stored locally in this webview.
+              </p>
+              <div class="row">
+                <input id="apiKey" type="password" placeholder="sk-…" autocomplete="off" />
+                <button id="btnSaveKey">save</button>
+              </div>
+            </div>
+            <div class="section">
+              <div class="section-label">quick equation</div>
+              <p class="section-help">
+                Render a MathJax mark at the next tap, or press add for the canvas center.
+              </p>
+              <div class="row">
+                <input id="equationInput" value="x^2 + y^2 = r^2" />
+                <button id="btnAddEquation">add</button>
+              </div>
+            </div>
+            <div class="section">
+              <div class="section-label">canvas</div>
+              <div class="stat-grid">
+                <div>marks<b id="statMarks">0</b></div>
+                <div>session<b id="statSession">—</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-panel" data-panel="events">
+          <div class="panel-content" id="events" aria-live="polite">
+            <div class="events-empty">connect to start the agent stream.</div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <audio id="remoteAudio" autoplay playsinline></audio>
+    <div id="toast" class="toast"></div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const stage = $("stage");
+      const inkLayer = $("inkLayer");
+      const agentLayer = $("agentLayer");
+      const eventsEl = $("events");
+      const eventsBadge = $("eventsBadge");
+      const statusPill = $("statusPill");
+      const statusText = $("statusText");
+      const btnStart = $("btnStart");
+      const btnStartLabel = $("btnStartLabel");
+      const audioEl = $("remoteAudio");
+      const apiKeyInput = $("apiKey");
+      const equationInput = $("equationInput");
+      const strokeSizeInput = $("strokeSize");
+      const toastEl = $("toast");
+      const statMarks = $("statMarks");
+      const statSession = $("statSession");
+
+      const TAURI_INVOKE = window.__TAURI__?.core?.invoke;
+      const API_KEY_STORAGE = "aide:openai-api-key:v1";
+      const CANVAS_STORAGE = "aide:math-canvas:v1";
+      const THEME_STORAGE = "theme";
+      const MODEL = "gpt-realtime-2";
+      const MAX_TOOL_IMAGE_CHARS = 900000;
+
+      const EVENT_GLYPHS = {
+        user: ">",
+        assistant: "·",
+        "tool-call": "→",
+        "tool-result": "←",
+        context: "~",
+        system: "·",
+        debug: "·",
+        error: "!",
+      };
+
+      let tool = "pen";
+      let color = "#f8fafc";
+      let pc = null;
+      let dc = null;
+      let localStream = null;
+      let currentCallId = null;
+      let callStartTime = null;
+      let sessionId = null;
+      let sessionStartedAt = null;
+      const sessionEvents = [];
+      const marks = [];
+      let drawing = null;
+      let lastCanvasSnapshot = "";
+      let toastTimer = null;
+      let eventsCount = 0;
+      let eventsHasContent = false;
+
+      apiKeyInput.value = localStorage.getItem(API_KEY_STORAGE) || "";
+      if (localStorage.getItem(THEME_STORAGE) === "light") {
+        document.documentElement.setAttribute("data-theme", "light");
+        $("btnTheme").textContent = "☾";
+      }
+
+      function nowId(prefix = "mark") {
+        return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+      }
+
+      function showToast(message) {
+        toastEl.textContent = message;
+        toastEl.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1500);
+      }
+
+      function setStatus(text, state = "idle") {
+        statusText.textContent = text;
+        statusPill.classList.toggle("is-connecting", state === "connecting");
+        statusPill.classList.toggle("is-connected", state === "connected");
+      }
+
+      function formatTimestamp() {
+        if (!callStartTime) return "00:00";
+        const s = Math.floor((Date.now() - callStartTime) / 1000);
+        return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+      }
+
+      function logEvent(kind, role, body = "") {
+        if (!eventsHasContent) {
+          eventsEl.innerHTML = "";
+          eventsHasContent = true;
+        }
+        const el = document.createElement("div");
+        el.className = `event event-${kind}`;
+        const head = document.createElement("div");
+        head.className = "event-head";
+        const glyph = EVENT_GLYPHS[kind] ?? "·";
+        head.innerHTML = `
+          <span class="event-icon">${glyph}</span>
+          <span class="event-role"></span>
+          <span class="event-kind">${kind}</span>
+          <span class="event-time">${formatTimestamp()}</span>
+        `;
+        head.querySelector(".event-role").textContent = role;
+        el.appendChild(head);
+        if (body) {
+          const isCodeLike =
+            kind === "tool-call" ||
+            kind === "tool-result" ||
+            (typeof body === "string" && body.length > 220 && body.includes("\n"));
+          const content = document.createElement("div");
+          content.className = isCodeLike ? "event-code" : "event-body";
+          content.textContent = body;
+          el.appendChild(content);
+        }
+        eventsEl.appendChild(el);
+        eventsEl.scrollTop = eventsEl.scrollHeight;
+        eventsCount += 1;
+        eventsBadge.style.display = eventsCount ? "inline-block" : "none";
+        eventsBadge.textContent = eventsCount;
+        if (sessionId) sessionEvents.push({ at: Date.now(), kind, role, body });
+      }
+
+      function stageRect() { return stage.getBoundingClientRect(); }
+      function pointFromEvent(e) {
+        const r = stageRect();
+        return { x: e.clientX - r.left, y: e.clientY - r.top };
+      }
+      function resizeLayers() {
+        const r = stageRect();
+        inkLayer.setAttribute("viewBox", `0 0 ${Math.max(1, r.width)} ${Math.max(1, r.height)}`);
+      }
+      window.addEventListener("resize", resizeLayers);
+      resizeLayers();
+
+      function pathFromPoints(points) {
+        if (!points.length) return "";
+        if (points.length === 1) return `M ${points[0].x} ${points[0].y} l 0.1 0.1`;
+        let d = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+        for (let i = 1; i < points.length; i++) d += ` L ${points[i].x.toFixed(1)} ${points[i].y.toFixed(1)}`;
+        return d;
+      }
+
+      function boundsFromPoints(points, pad = 8) {
+        const xs = points.map(p => p.x), ys = points.map(p => p.y);
+        return {
+          x: Math.min(...xs) - pad,
+          y: Math.min(...ys) - pad,
+          width: Math.max(...xs) - Math.min(...xs) + pad * 2,
+          height: Math.max(...ys) - Math.min(...ys) + pad * 2,
+        };
+      }
+
+      function svgEl(name, attrs = {}) {
+        const el = document.createElementNS("http://www.w3.org/2000/svg", name);
+        Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, String(v)));
+        return el;
+      }
+
+      function renderMark(mark) {
+        removeRenderedMark(mark.id);
+        if (mark.type === "ink") {
+          const path = svgEl("path", {
+            d: pathFromPoints(mark.points),
+            fill: "none",
+            stroke: mark.color,
+            "stroke-width": mark.size,
+            "stroke-linecap": "round",
+            "stroke-linejoin": "round",
+            "data-mark-id": mark.id,
+          });
+          inkLayer.appendChild(path);
+          mark.element = path;
+          return;
+        }
+        if (["line", "rect", "circle", "highlight"].includes(mark.type)) {
+          const common = {
+            "data-mark-id": mark.id,
+            stroke: mark.color || "#60a5fa",
+            "stroke-width": mark.size || 4,
+          };
+          let el;
+          if (mark.type === "line") {
+            el = svgEl("line", { ...common, x1: mark.x, y1: mark.y, x2: mark.x2 ?? mark.x + 140, y2: mark.y2 ?? mark.y });
+          } else if (mark.type === "circle") {
+            const rx = Math.abs((mark.x2 ?? mark.x + 120) - mark.x) / 2;
+            const ry = Math.abs((mark.y2 ?? mark.y + 80) - mark.y) / 2;
+            el = svgEl("ellipse", { ...common, cx: mark.x + rx, cy: mark.y + ry, rx, ry, fill: "none" });
+          } else {
+            const x2 = mark.x2 ?? mark.x + 160, y2 = mark.y2 ?? mark.y + 64;
+            el = svgEl("rect", {
+              ...common,
+              x: Math.min(mark.x, x2),
+              y: Math.min(mark.y, y2),
+              width: Math.abs(x2 - mark.x),
+              height: Math.abs(y2 - mark.y),
+              rx: 6,
+              fill: mark.type === "highlight" ? (mark.color || "#f59e0b") : "none",
+              opacity: mark.type === "highlight" ? 0.22 : 1,
+            });
+          }
+          inkLayer.appendChild(el);
+          mark.element = el;
+          return;
+        }
+        const el = document.createElement("div");
+        el.className = mark.type === "equation" ? "math-mark" : "text-mark";
+        el.dataset.markId = mark.id;
+        el.style.left = `${mark.x}px`;
+        el.style.top = `${mark.y}px`;
+        el.style.color = mark.color || "var(--ink)";
+        el.style.fontSize = `${mark.size || 24}px`;
+        if (mark.type === "equation") {
+          el.textContent = `\\(${mark.latex || mark.text || ""}\\)`;
+        } else {
+          el.textContent = mark.text || "";
+        }
+        agentLayer.appendChild(el);
+        mark.element = el;
+        if (window.MathJax?.typesetPromise) MathJax.typesetPromise([el]).catch(console.warn);
+      }
+
+      function removeRenderedMark(id) {
+        inkLayer.querySelectorAll(`[data-mark-id="${CSS.escape(id)}"]`).forEach(el => el.remove());
+        agentLayer.querySelectorAll(`[data-mark-id="${CSS.escape(id)}"]`).forEach(el => el.remove());
+      }
+
+      function updateStats() {
+        statMarks.textContent = String(marks.length);
+        if (sessionStartedAt) {
+          const sec = Math.floor((Date.now() - sessionStartedAt) / 1000);
+          statSession.textContent =
+            `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+        } else {
+          statSession.textContent = "—";
+        }
+      }
+      setInterval(updateStats, 1000);
+
+      function addMark(mark, { persist = true, announce = true } = {}) {
+        const full = {
+          id: mark.id || nowId(mark.type || "mark"),
+          color: mark.color || color,
+          size: Number(mark.size || strokeSizeInput.value || 4),
+          ...mark,
+        };
+        marks.push(full);
+        renderMark(full);
+        if (persist) persistCanvas();
+        if (announce) showToast(`${full.type} · ${full.id}`);
+        updateStats();
+        return full;
+      }
+
+      function eraseMarkById(id, { persist = true } = {}) {
+        const idx = marks.findIndex(m => m.id === id);
+        if (idx < 0) return null;
+        const [removed] = marks.splice(idx, 1);
+        removeRenderedMark(removed.id);
+        if (persist) persistCanvas();
+        updateStats();
+        return removed;
+      }
+
+      function markBounds(mark) {
+        if (mark.type === "ink") return boundsFromPoints(mark.points || [], (mark.size || 4) + 10);
+        if (["line", "rect", "circle", "highlight"].includes(mark.type)) {
+          const x2 = mark.x2 ?? mark.x + 140, y2 = mark.y2 ?? mark.y + 80;
+          return {
+            x: Math.min(mark.x, x2) - 12,
+            y: Math.min(mark.y, y2) - 12,
+            width: Math.abs(x2 - mark.x) + 24,
+            height: Math.abs(y2 - mark.y) + 24,
+          };
+        }
+        const rect = mark.element?.getBoundingClientRect();
+        const sr = stageRect();
+        if (rect) return { x: rect.left - sr.left, y: rect.top - sr.top, width: rect.width, height: rect.height };
+        return { x: mark.x, y: mark.y, width: 160, height: 50 };
+      }
+
+      function findTopMarkAt(x, y) {
+        for (let i = marks.length - 1; i >= 0; i--) {
+          const b = markBounds(marks[i]);
+          if (x >= b.x && x <= b.x + b.width && y >= b.y && y <= b.y + b.height) return marks[i];
+        }
+        return null;
+      }
+
+      function clearCanvas({ persist = true } = {}) {
+        marks.splice(0, marks.length);
+        inkLayer.innerHTML = "";
+        agentLayer.innerHTML = "";
+        if (persist) persistCanvas();
+        updateStats();
+      }
+
+      function persistCanvas() {
+        const serializable = marks.map(({ element, ...m }) => m);
+        localStorage.setItem(CANVAS_STORAGE, JSON.stringify(serializable));
+      }
+
+      function loadCanvas() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(CANVAS_STORAGE) || "[]");
+          if (Array.isArray(saved)) saved.forEach(mark => addMark(mark, { persist: false, announce: false }));
+        } catch (e) {
+          console.warn("canvas restore failed", e);
+        }
+      }
+      loadCanvas();
+
+      stage.addEventListener("pointerdown", (e) => {
+        stage.setPointerCapture(e.pointerId);
+        const p = pointFromEvent(e);
+        if (tool === "eraser") {
+          const hit = findTopMarkAt(p.x, p.y);
+          if (hit) {
+            eraseMarkById(hit.id);
+            showToast(`erased · ${hit.id}`);
+          }
+          return;
+        }
+        if (tool === "pan") {
+          if (equationInput.value.trim()) {
+            addMark({ type: "equation", x: p.x, y: p.y, latex: equationInput.value.trim(), color, size: 26 });
+          }
+          return;
+        }
+        drawing = {
+          id: nowId("ink"),
+          type: "ink",
+          points: [p],
+          color,
+          size: Number(strokeSizeInput.value || 4),
+        };
+        addMark(drawing, { persist: false, announce: false });
+      });
+      stage.addEventListener("pointermove", (e) => {
+        if (!drawing) return;
+        const p = pointFromEvent(e);
+        const last = drawing.points[drawing.points.length - 1];
+        if (Math.hypot(p.x - last.x, p.y - last.y) < 1.5) return;
+        drawing.points.push({ x: p.x, y: p.y, pressure: e.pressure || 0.5, pointerType: e.pointerType });
+        renderMark(drawing);
+      });
+      function finishDrawing() {
+        if (!drawing) return;
+        if (drawing.points.length < 2) eraseMarkById(drawing.id, { persist: false });
+        drawing = null;
+        persistCanvas();
+      }
+      stage.addEventListener("pointerup", finishDrawing);
+      stage.addEventListener("pointercancel", finishDrawing);
+
+      // Tabs
+      document.querySelectorAll(".tab").forEach((tabBtn) => {
+        tabBtn.addEventListener("click", () => {
+          const target = tabBtn.dataset.tab;
+          document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t === tabBtn));
+          document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.dataset.panel === target));
+        });
+      });
+
+      document.querySelectorAll(".tool").forEach(btn => {
+        btn.addEventListener("click", () => {
+          tool = btn.dataset.tool;
+          document.querySelectorAll(".tool").forEach(b => b.classList.toggle("is-active", b === btn));
+          showToast(`tool · ${tool}`);
+        });
+      });
+      document.querySelectorAll(".swatch").forEach(btn => {
+        btn.addEventListener("click", () => {
+          color = btn.dataset.color;
+          document.querySelectorAll(".swatch").forEach(b => b.classList.toggle("is-active", b === btn));
+        });
+      });
+      $("btnUndo").addEventListener("click", () => {
+        const last = marks[marks.length - 1];
+        if (last) eraseMarkById(last.id);
+      });
+      $("btnClear").addEventListener("click", () => {
+        if (confirm("Clear the whole canvas?")) clearCanvas();
+      });
+      $("btnAddEquation").addEventListener("click", () => {
+        const r = stageRect();
+        addMark({
+          type: "equation",
+          x: r.width / 2 - 120,
+          y: r.height / 2 - 30,
+          latex: equationInput.value.trim() || "x^2+y^2=r^2",
+          color,
+          size: 28,
+        });
+      });
+      $("btnReadCanvas").addEventListener("click", async () => {
+        const result = await readCanvas({ include_image: false });
+        logEvent("tool-result", "read_canvas", result);
+      });
+      $("btnSaveKey").addEventListener("click", () => {
+        localStorage.setItem(API_KEY_STORAGE, apiKeyInput.value.trim());
+        showToast("api key saved");
+      });
+      $("btnTheme").addEventListener("click", () => {
+        const html = document.documentElement;
+        const light = html.getAttribute("data-theme") !== "light";
+        if (light) html.setAttribute("data-theme", "light");
+        else html.removeAttribute("data-theme");
+        localStorage.setItem(THEME_STORAGE, light ? "light" : "dark");
+        $("btnTheme").textContent = light ? "☾" : "☀";
+      });
+
+      function canvasSummary() {
+        return {
+          viewport: {
+            width: Math.round(stageRect().width),
+            height: Math.round(stageRect().height),
+          },
+          mark_count: marks.length,
+          marks: marks.map(m => {
+            const { element, points, ...rest } = m;
+            return {
+              ...rest,
+              point_count: points?.length,
+              points: points?.length > 80
+                ? points.filter((_, i) => i % Math.ceil(points.length / 80) === 0)
+                : points,
+            };
+          }),
+        };
+      }
+
+      async function exportCanvasPng() {
+        await window.MathJax?.typesetPromise?.();
+        if (window.html2canvas) {
+          const canvas = await html2canvas(stage, {
+            backgroundColor: null,
+            scale: Math.min(2, window.devicePixelRatio || 1),
+            useCORS: true,
+          });
+          return canvas.toDataURL("image/png");
+        }
+        const summary = canvasSummary();
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${summary.viewport.width}" height="${summary.viewport.height}"><rect width="100%" height="100%" fill="#111827"/><text x="24" y="36" fill="white" font-family="monospace" font-size="16">Canvas export fallback; use structured marks.</text></svg>`;
+        return `data:image/svg+xml;base64,${btoa(svg)}`;
+      }
+
+      async function readCanvas(args = {}) {
+        const includeImage = args.include_image !== false;
+        const summary = canvasSummary();
+        const out = { summary };
+        if (includeImage) {
+          const image = await exportCanvasPng();
+          out.image_data_url =
+            image.length > MAX_TOOL_IMAGE_CHARS
+              ? image.slice(0, MAX_TOOL_IMAGE_CHARS) + "…(truncated)"
+              : image;
+        }
+        lastCanvasSnapshot = JSON.stringify(summary);
+        return JSON.stringify(out);
+      }
+
+      async function webSearch(query) {
+        const resp = await fetch(`https://s.jina.ai/${encodeURIComponent(query || "")}`, { headers: { Accept: "text/plain" } });
+        return (await resp.text()).slice(0, 3000);
+      }
+      async function fetchUrl(url) {
+        const resp = await fetch(`https://r.jina.ai/${url || ""}`, { headers: { Accept: "text/plain" } });
+        return (await resp.text()).slice(0, 3000);
+      }
+
+      const agentTools = {
+        read_canvas: readCanvas,
+        add_mark: async (args) => {
+          const mark = addMark({
+            id: args.id,
+            type: args.type,
+            x: Number(args.x || 0),
+            y: Number(args.y || 0),
+            x2: args.x2 == null ? undefined : Number(args.x2),
+            y2: args.y2 == null ? undefined : Number(args.y2),
+            latex: args.latex,
+            text: args.text,
+            color: args.color || "#60a5fa",
+            size: Number(args.size || (args.type === "equation" ? 28 : 4)),
+          });
+          return `Added ${mark.type} mark ${mark.id}.`;
+        },
+        erase_mark: async (args) => {
+          let removed = args.id ? eraseMarkById(args.id) : null;
+          if (!removed && Number.isFinite(args.x) && Number.isFinite(args.y)) {
+            const hit = findTopMarkAt(Number(args.x), Number(args.y));
+            if (hit) removed = eraseMarkById(hit.id);
+          }
+          return removed ? `Erased mark ${removed.id}.` : "No matching mark found.";
+        },
+        clear_canvas: async () => {
+          clearCanvas();
+          return "Canvas cleared.";
+        },
+        get_current_time: async () => new Date().toUTCString(),
+        web_search: async (args) => webSearch(args.query),
+        fetch_url: async (args) => fetchUrl(args.url),
+        end_call: async () => { setTimeout(stop, 250); return "Ending the call."; },
+      };
+
+      function sendDcMessage(obj) {
+        if (dc && dc.readyState === "open") dc.send(JSON.stringify(obj));
+      }
+      function submitFunctionOutput(callId, output) {
+        sendDcMessage({
+          type: "conversation.item.create",
+          item: { type: "function_call_output", call_id: callId, output },
+        });
+        sendDcMessage({ type: "response.create" });
+      }
+      function pushCanvasContextIfChanged() {
+        if (!dc || dc.readyState !== "open") return;
+        const summary = canvasSummary();
+        const snap = JSON.stringify(summary);
+        if (snap === lastCanvasSnapshot) return;
+        sendDcMessage({
+          type: "conversation.item.create",
+          item: {
+            type: "message",
+            role: "system",
+            content: [{
+              type: "input_text",
+              text: `[canvas summary]\n${snap}\nCall read_canvas when you need the actual image.`,
+            }],
+          },
+        });
+        lastCanvasSnapshot = snap;
+        logEvent("context", "canvas.summary", `${summary.mark_count} marks`);
+      }
+
+      async function createRealtimeAnswer(offerSdp) {
+        const apiKey = apiKeyInput.value.trim() || localStorage.getItem(API_KEY_STORAGE) || "";
+        if (TAURI_INVOKE) {
+          return await TAURI_INVOKE("start_realtime_call", {
+            req: { sdp: offerSdp, model: MODEL, apiKey },
+          });
+        }
+        const resp = await fetch("/rtc", {
+          method: "POST",
+          headers: { "Content-Type": "application/sdp" },
+          body: offerSdp,
+        });
+        if (!resp.ok) throw new Error(`Server error: ${resp.status} ${await resp.text()}`);
+        const location = resp.headers.get("Location");
+        return {
+          answer_sdp: await resp.text(),
+          call_id: location?.split("/").pop(),
+          location,
+        };
+      }
+
+      async function start() {
+        if (pc) return stop();
+        callStartTime = Date.now();
+        sessionId = crypto.randomUUID ? crypto.randomUUID() : nowId("session");
+        sessionStartedAt = Date.now();
+        sessionEvents.length = 0;
+        eventsEl.innerHTML = "";
+        eventsCount = 0;
+        eventsHasContent = false;
+        eventsBadge.style.display = "none";
+        currentCallId = null;
+        setStatus("connecting", "connecting");
+        btnStart.disabled = true;
+        logEvent("system", "connection", "starting voice agent connection");
+        try {
+          const streamPromise = navigator.mediaDevices.getUserMedia({ audio: true });
+          pc = new RTCPeerConnection({});
+          pc.onconnectionstatechange = () => {
+            logEvent("debug", "webrtc", pc.connectionState);
+            if (["failed", "closed", "disconnected"].includes(pc.connectionState)) {
+              if (pc) stop();
+            }
+          };
+          pc.ontrack = (ev) => {
+            audioEl.srcObject = ev.streams[0] || new MediaStream([ev.track]);
+          };
+          const audioTc = pc.addTransceiver("audio");
+          dc = pc.createDataChannel("aide-tools");
+          dc.onmessage = (msg) => handleRealtimeEvent(JSON.parse(msg.data));
+          dc.onopen = () => logEvent("system", "datachannel", "open");
+          dc.onclose = () => {
+            logEvent("system", "datachannel", "closed");
+            if (pc) stop();
+          };
+
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          const answer = await createRealtimeAnswer(offer.sdp);
+          currentCallId = answer.call_id || null;
+          await pc.setRemoteDescription({ type: "answer", sdp: answer.answer_sdp });
+          const stream = await streamPromise;
+          localStream = stream;
+          audioTc.sender.replaceTrack(stream.getAudioTracks()[0]);
+          audioEl.play().catch(() => {});
+          btnStartLabel.textContent = "hang up";
+          btnStart.classList.add("is-live");
+          setStatus("live", "connected");
+          logEvent("system", "connection", `connected${currentCallId ? ` · ${currentCallId}` : ""}`);
+        } catch (e) {
+          logEvent("error", "connection", e.message || String(e));
+          setStatus("connection failed", "idle");
+          await stop();
+        } finally {
+          btnStart.disabled = false;
+        }
+      }
+
+      async function handleRealtimeEvent(event) {
+        if (event.type === "session.created") {
+          logEvent("system", "session.created", `model=${event.session?.model || MODEL}`);
+          pushCanvasContextIfChanged();
+          return;
+        }
+        if (event.type === "input_audio_buffer.speech_started") {
+          pushCanvasContextIfChanged();
+          return;
+        }
+        if (event.type === "conversation.item.input_audio_transcription.completed") {
+          const text = (event.transcript || "").trim();
+          if (text) logEvent("user", "user", text);
+          return;
+        }
+        if (event.type === "response.audio_transcript.done") {
+          const text = (event.transcript || "").trim();
+          if (text) logEvent("assistant", "assistant", text);
+          return;
+        }
+        if (event.type === "response.text.done") {
+          const text = (event.text || "").trim();
+          if (text) logEvent("assistant", "assistant", text);
+          return;
+        }
+        if (event.type === "response.function_call_arguments.done") {
+          return handleToolCall(event);
+        }
+        if (event.type === "error") {
+          logEvent("error", "realtime", event.error?.message || JSON.stringify(event.error));
+        }
+      }
+
+      async function handleToolCall(event) {
+        const name = event.name;
+        const handler = agentTools[name];
+        if (!handler) return;
+        let args = {};
+        try {
+          args = event.arguments ? JSON.parse(event.arguments) : {};
+        } catch (e) {
+          submitFunctionOutput(event.call_id, `Error parsing arguments: ${e.message}`);
+          return;
+        }
+        logEvent("tool-call", name, JSON.stringify(args, null, 2));
+        let result;
+        try {
+          result = await handler(args);
+        } catch (e) {
+          result = `Tool error: ${e.message || e}`;
+        }
+        const resultStr = typeof result === "string" ? result : JSON.stringify(result);
+        logEvent("tool-result", `${name} ↩`, resultStr.length > 500 ? resultStr.slice(0, 500) + "…" : resultStr);
+        submitFunctionOutput(event.call_id, resultStr);
+      }
+
+      async function persistSession() {
+        if (!sessionId) return;
+        const payload = {
+          id: sessionId,
+          started_at: sessionStartedAt || Date.now(),
+          stopped_at: Date.now(),
+          events: sessionEvents.slice(),
+          canvas: canvasSummary(),
+        };
+        const id = sessionId;
+        sessionId = null;
+        if (TAURI_INVOKE) {
+          try { await TAURI_INVOKE("save_session", { session: payload }); }
+          catch (e) { console.warn("save_session failed", e); }
+        } else {
+          localStorage.setItem(`aide:session:${id}`, JSON.stringify(payload));
+        }
+      }
+
+      async function stop() {
+        setStatus("disconnecting", "connecting");
+        btnStart.disabled = true;
+        const callId = currentCallId;
+        currentCallId = null;
+        if (dc) { dc.onclose = null; dc.close?.(); dc = null; }
+        if (pc) {
+          pc.getSenders().forEach(s => s.track?.stop());
+          pc.getReceivers().forEach(r => r.track?.stop());
+          pc.close();
+          pc = null;
+        }
+        if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+        audioEl.srcObject = null;
+        if (TAURI_INVOKE && callId) {
+          TAURI_INVOKE("hangup_call", {
+            callId,
+            apiKey: apiKeyInput.value.trim() || null,
+          }).catch(console.warn);
+        }
+        await persistSession();
+        callStartTime = null;
+        sessionStartedAt = null;
+        btnStartLabel.textContent = "go live";
+        btnStart.classList.remove("is-live");
+        setStatus("idle", "idle");
+        btnStart.disabled = false;
+        updateStats();
+      }
+
+      btnStart.addEventListener("click", start);
+      window.addEventListener("beforeunload", () => {
+        persistCanvas();
+        persistSession();
+      });
+      setStatus("idle", "idle");
+      logEvent(
+        "system",
+        "ready",
+        "Draw with Apple Pencil/touch. Agent tools can add MathJax marks, erase whole marks, and read the canvas as an image."
+      );
+    </script>
+  </body>
+</html>

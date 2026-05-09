@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "aide",
+  "version": "0.2.0",
+  "identifier": "com.swair.aide",
+  "build": {
+    "frontendDist": "../frontend"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "aide",
+        "width": 1360,
+        "height": 900,
+        "minWidth": 900,
+        "minHeight": 650,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Education",
+    "shortDescription": "Voice-guided math canvas tutor",
+    "longDescription": "A Tauri app for live math tutoring with MathJax-rendered equations and Apple Pencil-friendly canvas tools."
+  }
+}
